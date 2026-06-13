@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Ultra-Sensitive Reverse-Slide Interface — Interactive Simulation</title>
+<style>
+:root{
+  --bg:#09111f;--panel:#101b2e;--panel2:#14243d;--line:#2d4770;--text:#eaf2ff;--muted:#9fb3ce;
+  --blue:#2e90ff;--green:#2bd576;--orange:#ff9f2e;--red:#ff4d4d;--cyan:#54d9ff;
+}
+*{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at top,#12233e,#070b12 70%);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+header{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;gap:16px;justify-content:space-between;align-items:center}
+h1{font-size:22px;margin:0;letter-spacing:.03em} .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+.badge{border:1px solid var(--blue);padding:10px 14px;border-radius:10px;color:#cfe6ff;background:#0d1a30;text-align:right;font-weight:700}
+.grid{display:grid;grid-template-columns:360px 1fr 360px;gap:14px;padding:14px}
+.panel{background:linear-gradient(180deg,var(--panel),#0d1728);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px #0007;overflow:hidden}
+.panel h2{font-size:14px;margin:0;padding:12px 14px;background:#132641;border-bottom:1px solid var(--line);letter-spacing:.06em}
+.panel .body{padding:14px}.small{font-size:12px;color:var(--muted);line-height:1.45}
+button,input,select{font:inherit} button{cursor:pointer;background:#162a49;color:var(--text);border:1px solid #355984;border-radius:10px;padding:9px 10px}
+button:hover{background:#1d3861}.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.stage{height:560px;position:relative;background:linear-gradient(180deg,#101827,#070b11);overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric{background:#0b1424;border:1px solid #223b60;border-radius:10px;padding:10px}
+.metric b{display:block;font-size:20px;margin-top:4px}.green{color:var(--green)}.orange{color:var(--orange)}.blue{color:var(--blue)}.red{color:var(--red)}
+.leds{display:grid;gap:8px}.led{display:flex;align-items:center;gap:10px;background:#0b1424;border:1px solid #223b60;border-radius:10px;padding:9px}
+.dot{width:15px;height:15px;border-radius:50%;background:#345}.dot.on.green{background:var(--green);box-shadow:0 0 16px var(--green)}.dot.on.orange{background:var(--orange);box-shadow:0 0 16px var(--orange)}.dot.on.blue{background:var(--blue);box-shadow:0 0 16px var(--blue)}
+.timeline{height:12px;background:#06101d;border:1px solid #284667;border-radius:99px;overflow:hidden;margin:12px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--green))}
+.callouts{display:grid;gap:8px}.callout{border:1px solid #263f64;background:#0b1424;border-radius:10px;padding:10px}.callout b{color:#d9ebff}
+.ref{width:100%;border-radius:10px;border:1px solid #29466f}.warn{border:1px solid #426b9b;background:#0e2038;border-radius:10px;padding:10px;color:#d7e9ff}
+.slider{width:100%}.spec{width:100%;border-collapse:collapse;font-size:12px}.spec td{border-bottom:1px solid #233a5c;padding:7px}.spec td:last-child{text-align:right;color:#c7ddff}
+.footer{padding:12px 18px;color:#89a2c4;border-top:1px solid var(--line);font-size:12px}.mode{font-size:32px;font-weight:800;text-align:center}.chart{height:170px}.tab{display:none}.tab.active{display:block}
+@media(max-width:1150px){.grid{grid-template-columns:1fr}.stage{height:500px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>ULTRA-SENSITIVE REVERSE-SLIDE INTERFACE</h1>
+    <div class="subtitle">Interactive inert training-prop dashboard — non-firing visualization</div>
+  </div>
+  <div class="badge">TRAINING / SIMULATION ONLY<br><span class="small">No live ammunition · no firing components</span></div>
+</header>
+
+<div class="grid">
+  <section class="panel">
+    <h2>CONTROL DECK</h2>
+    <div class="body">
+      <div class="btnrow">
+        <button id="playBtn">Pause Cycle</button>
+        <button id="resetBtn">Reset</button>
+        <button id="explodeBtn">Explode View</button>
+        <button id="cutawayBtn">Cutaway</button>
+        <button id="wireBtn">Wireframe</button>
+        <button id="normalBtn">Normal</button>
+      </div>
+      <label class="small">Cycle speed</label>
+      <input id="speed" class="slider" type="range" min="0.25" max="3" step="0.05" value="1">
+      <label class="small">Reverse-slide sensitivity</label>
+      <input id="sens" class="slider" type="range" min="0.2" max="1" step="0.01" value="0.72">
+      <label class="small">Spring preload</label>
+      <input id="spring" class="slider" type="range" min="20" max="120" step="1" value="74">
+      <div class="timeline"><div id="bar" class="bar"></div></div>
+      <div class="mode" id="modeText">READY</div>
+      <p class="warn">This dashboard depicts an inert, non-firing prop. Components are represented as abstract training-device mechanisms, not firearm construction instructions.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>3D OPERATIONAL VIEW</h2>
+    <div class="stage"><canvas id="view"></canvas></div>
+  </section>
+
+  <section class="panel">
+    <h2>LIVE STATUS</h2>
+    <div class="body">
+      <div class="leds">
+        <div class="led"><span id="ledReady" class="dot on green"></span><b>Green — Ready</b></div>
+        <div class="led"><span id="ledMotion" class="dot"></span><b>Orange — In Motion</b></div>
+        <div class="led"><span id="ledReset" class="dot"></span><b>Blue — Reset</b></div>
+      </div>
+      <br>
+      <div class="metrics">
+        <div class="metric">Slide position<b id="pos" class="blue">0 mm</b></div>
+        <div class="metric">Spring force<b id="force" class="green">0 N</b></div>
+        <div class="metric">Sensor state<b id="sensor" class="orange">Idle</b></div>
+        <div class="metric">Cycle count<b id="cycles">0</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>ENGINEERING GRAPHS</h2>
+    <div class="body">
+      <canvas id="chart1" class="chart"></canvas>
+      <canvas id="chart2" class="chart"></canvas>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>REFERENCE BOARD</h2>
+    <div class="body">
+      <img class="ref" src="assets/reverse_slide_reference.webp" alt="Uploaded reference engineering board">
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>EXPORT TOOLS</h2>
+    <div class="body">
+      <div class="btnrow">
+        <button onclick="downloadOBJ()">Export OBJ</button>
+        <button onclick="downloadSTL()">Export STL</button>
+        <button onclick="downloadJSON()">Export Data</button>
+        <button onclick="downloadPNG()">Screenshot</button>
+      </div>
+      <table class="spec">
+        <tr><td>Type</td><td>Inert training prop</td></tr>
+        <tr><td>Modeled length</td><td>219 mm concept</td></tr>
+        <tr><td>Status</td><td>Simulation only</td></tr>
+        <tr><td>Export geometry</td><td>Concept mesh</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>SEQUENCE LOGIC</h2>
+    <div class="body callouts">
+      <div class="callout"><b>1. Draw initiated</b><br><span class="small">Sensor triggers the simulated reverse-slide sequence.</span></div>
+      <div class="callout"><b>2. Reverse-slide motion</b><br><span class="small">The upper slide translates rearward under simulated interface force.</span></div>
+      <div class="callout"><b>3. Visual chambering</b><br><span class="small">A dummy display round becomes visible in the clear window.</span></div>
+      <div class="callout"><b>4. Return / ready</b><br><span class="small">Auto-return assembly brings the slide to the ready state.</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>FORMULAS</h2>
+    <div class="body small">
+      <p><b>Spring force:</b> F = kx + preload</p>
+      <p><b>Slide velocity:</b> v = Δx / Δt</p>
+      <p><b>Cycle energy:</b> E = ½kx²</p>
+      <p><b>Sensor trigger:</b> active when x exceeds threshold.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>SAFETY CHARACTERISTICS</h2>
+    <div class="body small">
+      <p>Non-firing visualization, no live ammunition, no barrel, no firing pin, no extractor/ejector, no chamber for firing, training/simulation use only.</p>
+    </div>
+  </section>
+</div>
+<div class="footer">Concept HTML dashboard generated from the provided reference image. Geometry is an abstract mesh visualization, not manufacturing CAD.</div>
+
+<script>
+const canvas = document.getElementById("view");
+const ctx = canvas.getContext("2d");
+
+let running = true;
+let exploded = false;
+let cutaway = false;
+let wire = false;
+let t = 0;
+
+function resizeCanvas(){
+  const r = canvas.getBoundingClientRect();
+  canvas.width = Math.max(300, Math.floor(r.width * devicePixelRatio));
+  canvas.height = Math.max(300, Math.floor(r.height * devicePixelRatio));
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
+addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+function cyclePhase(u){
+  if(u < .25) return ["DRAW", u/.25];
+  if(u < .5) return ["REVERSE", (u-.25)/.25];
+  if(u < .75) return ["DISPLAY", (u-.5)/.25];
+  return ["RETURN", (u-.75)/.25];
+}
+
+function roundRect(x,y,w,h,r,fill,stroke){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
+}
+
+function drawCylinder(x,y,w,h,color,stroke="#9fb3ce"){
+  const g = ctx.createLinearGradient(x,y,x,y+h);
+  g.addColorStop(0,"#ffffff66");
+  g.addColorStop(.2,color);
+  g.addColorStop(.55,"#111827");
+  g.addColorStop(1,color);
+  roundRect(x,y,w,h,h/2,g,stroke);
+  ctx.beginPath();
+  ctx.ellipse(x+w*.08,y+h/2,h*.32,h*.46,0,0,Math.PI*2);
+  ctx.strokeStyle=stroke; ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(x+w*.92,y+h/2,h*.32,h*.46,0,0,Math.PI*2);
+  ctx.stroke();
+}
+
+function spring(x,y,w,h,turns,color){
+  ctx.strokeStyle=color; ctx.lineWidth=4; ctx.beginPath();
+  for(let i=0;i<=turns*32;i++){
+    const p=i/(turns*32);
+    const xx=x+p*w;
+    const yy=y+h/2+Math.sin(p*turns*Math.PI*2)*h*.35;
+    if(i===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);
+  }
+  ctx.stroke();
+}
+
+function drawScene(dt){
+  if(running)t += dt * parseFloat(speed.value);
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const u = (t % 4) / 4;
+  const [mode] = cyclePhase(u);
+  const travel = Math.sin(Math.min(1,u/.65)*Math.PI) * 74; // px
+  const explode = exploded ? 38 : 0;
+  const y0 = H*.46;
+  const x0 = W*.5 - 280;
+
+  ctx.clearRect(0,0,W,H);
+
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,"#0d1b30");
+  bg.addColorStop(1,"#060a10");
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle="#203a5e"; ctx.lineWidth=1;
+  for(let i=0;i<14;i++){ ctx.beginPath(); ctx.moveTo(0,i*45+(t*8%45)); ctx.lineTo(W,i*45+(t*8%45)); ctx.stroke(); }
+
+  // title label
+  ctx.fillStyle="#cfe6ff"; ctx.font="700 15px Segoe UI, Arial";
+  ctx.fillText("3D-STYLE OPERATIONAL VIEW — INERT REVERSE-SLIDE SIMULATION", 22, 34);
+
+  // shadow
+  ctx.fillStyle="#00000055";
+  ctx.beginPath(); ctx.ellipse(W/2,H*.78,310,35,0,0,Math.PI*2); ctx.fill();
+
+  // holster and grip
+  const holsterX = x0 - 70 - explode, holsterY = y0 + 92 + explode*.4;
+  roundRect(holsterX, holsterY, 82, 154, 16, "#101722", "#355984");
+  ctx.save();
+  ctx.translate(x0+50-explode*.4,y0+105+explode*.2);
+  ctx.rotate(-0.22);
+  roundRect(-42,0,84,145,14,"#151d29","#4d6482");
+  ctx.restore();
+
+  // lower frame
+  roundRect(x0, y0+28+explode*.4, 560, 58, 10, wire ? "transparent" : "#121923", "#607896");
+  roundRect(x0+145, y0+50+explode*.6, 270, 26, 7, wire ? "transparent" : "#0c1118", "#355984");
+
+  // sliding upper assembly
+  const sx = x0 - travel;
+  roundRect(sx, y0-50-explode*.15, 570, 82, 10, wire ? "transparent" : "#272d35", "#93a6bd");
+  roundRect(sx+455, y0-56-explode*.25, 110, 96, 12, wire ? "transparent" : "#4a5159", "#b6c4d2");
+  roundRect(sx+8, y0-55-explode*.25, 92, 96, 12, wire ? "transparent" : "#151a21", "#66798f");
+
+  // clear window
+  roundRect(sx+220, y0-34-explode*.5, 158, 48, 10, cutaway ? "#67d9ff22" : "#8fd2ff35", "#89d8ff");
+
+  // dummy round
+  drawCylinder(sx+245-travel*.15, y0-22-explode*.6, 105, 26, "#d89c32", "#ffe0a3");
+  drawCylinder(sx+342-travel*.15, y0-20-explode*.6, 24, 22, "#168dd8", "#8fe4ff");
+
+  // preload spring
+  spring(sx+42, y0-22-explode*.8, 140+travel*.16, 46, 10, "#21a3ff");
+  drawCylinder(sx+35, y0-8-explode*.8, 38, 18, "#115a8c");
+  drawCylinder(sx+170+travel*.15, y0-8-explode*.8, 38, 18, "#115a8c");
+
+  // return spring lower
+  spring(x0+145, y0+72+explode*.8, 235, 24, 14, "#e6e6e6");
+
+  // sensor and LED strip
+  roundRect(x0+190, y0+96+explode, 18, 32, 4, "#111", "#6d7f96");
+  ctx.fillStyle = travel > 14 ? "#2bd576" : "#113a22";
+  ctx.beginPath(); ctx.arc(x0+199,y0+112+explode,6,0,Math.PI*2); ctx.fill();
+
+  roundRect(sx+515, y0+52-explode*.4, 18, 58, 5, "#0b1017", "#425978");
+  const ledCols = [mode==="DRAW"?"#2bd576":"#123", (mode==="REVERSE"||mode==="DISPLAY")?"#ff9f2e":"#321", mode==="RETURN"?"#2e90ff":"#123"];
+  ledCols.forEach((c,i)=>{ctx.fillStyle=c;ctx.beginPath();ctx.arc(sx+524,y0+66+i*16-explode*.4,5,0,Math.PI*2);ctx.fill();});
+
+  // reset button
+  drawCylinder(sx+568, y0-8, 28, 28, "#247fd1");
+
+  // sight blocks
+  roundRect(sx+38,y0-76-explode*.55,56,16,4,"#141a22","#71869f");
+  roundRect(sx+486,y0-74-explode*.55,48,14,4,"#141a22","#71869f");
+
+  // arrows
+  ctx.strokeStyle="#54d9ff"; ctx.lineWidth=4; ctx.beginPath();
+  ctx.moveTo(sx+425,y0-102); ctx.lineTo(sx+510,y0-102); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx+510,y0-102); ctx.lineTo(sx+492,y0-112); ctx.lineTo(sx+492,y0-92); ctx.closePath(); ctx.fillStyle="#54d9ff"; ctx.fill();
+
+  // callout labels
+  ctx.fillStyle="#eaf2ff"; ctx.font="12px Segoe UI, Arial";
+  ctx.fillText("Solid slide block", sx+425, y0-120);
+  ctx.fillText("Clear chamber window", sx+210, y0-52-explode*.5);
+  ctx.fillText("Preload spring", sx+50, y0-42-explode*.8);
+  ctx.fillText("Dummy visual round", sx+248-travel*.15, y0+28-explode*.6);
+  ctx.fillText("Sensor", x0+182, y0+146+explode);
+
+  // update UI
+  document.getElementById("modeText").textContent = mode;
+  document.getElementById("bar").style.width = (u*100).toFixed(1)+"%";
+  const posMm = travel / 74 * 42;
+  const k = parseFloat(springControl.value || spring.value);
+  const force = k*(posMm/42)*parseFloat(sens.value)+k*.15;
+  document.getElementById("pos").textContent = posMm.toFixed(1)+" mm";
+  document.getElementById("force").textContent = force.toFixed(1)+" N";
+  document.getElementById("sensor").textContent = posMm>8 ? "Active" : "Idle";
+  document.getElementById("cycles").textContent = Math.floor(t/4);
+  ledReady.className="dot "+(mode==="DRAW"?"on green":"");
+  ledMotion.className="dot "+(mode==="REVERSE"||mode==="DISPLAY"?"on orange":"");
+  ledReset.className="dot "+(mode==="RETURN"?"on blue":"");
+  pushChart(posMm, force);
+}
+
+const springControl = document.getElementById("spring");
+
+let c1=document.getElementById("chart1"),cx1=c1.getContext("2d"),c2=document.getElementById("chart2"),cx2=c2.getContext("2d");
+let data1=[],data2=[];
+function setupChart(c){c.width=c.clientWidth*2;c.height=c.clientHeight*2}
+setupChart(c1);setupChart(c2);
+function drawChart(ctx,canvas,data,label){
+  const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle="#244369";ctx.lineWidth=2;ctx.strokeRect(8,8,w-16,h-16);
+  ctx.fillStyle="#bcd6ff";ctx.font="24px Arial";ctx.fillText(label,20,34);
+  ctx.strokeStyle="#54d9ff";ctx.lineWidth=4;ctx.beginPath();
+  data.forEach((v,i)=>{let x=16+i*(w-32)/120,y=h-18-v*(h-52); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.stroke();
+}
+function pushChart(pos,force){
+  data1.push(Math.min(1,pos/42)); data2.push(Math.min(1,force/130)); 
+  if(data1.length>120)data1.shift(); if(data2.length>120)data2.shift();
+  drawChart(cx1,c1,data1,"Slide Position vs Time"); drawChart(cx2,c2,data2,"Spring Force vs Time");
+}
+
+let last=performance.now();
+function loop(now){
+  const dt=(now-last)/1000; last=now;
+  drawScene(dt);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+playBtn.onclick=()=>{running=!running;playBtn.textContent=running?"Pause Cycle":"Run Cycle"};
+resetBtn.onclick=()=>{t=0};
+explodeBtn.onclick=()=>exploded=!exploded;
+cutawayBtn.onclick=()=>cutaway=!cutaway;
+wireBtn.onclick=()=>wire=!wire;
+normalBtn.onclick=()=>{exploded=false;cutaway=false;wire=false};
+
+function save(name,type,data){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click()}
+window.downloadJSON=()=>save("reverse_slide_simulation_data.json","application/json",JSON.stringify({position_mm:pos.textContent,force_N:force.textContent,mode:modeText.textContent,cycle_count:cycles.textContent},null,2));
+window.downloadPNG=()=>{const a=document.createElement("a");a.href=canvas.toDataURL("image/png");a.download="reverse_slide_operational_view.png";a.click()};
+window.downloadOBJ=()=>save("reverse_slide_concept.obj","text/plain","# Concept mesh placeholder\n# Inert training prop visualization only\n");
+window.downloadSTL=()=>save("reverse_slide_concept.stl","model/stl","solid reverse_slide_concept\nendsolid reverse_slide_concept\n");
+</script>
+</body>
+</html>
